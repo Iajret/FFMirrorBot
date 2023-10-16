@@ -1,0 +1,9 @@
+{
+    "keyPath": "path",
+    "appID": "id (number)",
+    "installationID": "install id (check app url for it)",
+
+    "pollInterval": "polling interval in seconds",
+    "repoPath": "YOUR repo path (git clone)",
+    "webhookURL": "discord webhook url for **advanced** error logging"
+}
