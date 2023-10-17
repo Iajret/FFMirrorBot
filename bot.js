@@ -28,17 +28,15 @@ const repoPath = config.repoPath;
 const githubClient = new Octokit({
   authStrategy: createAppAuth,
   auth: {
-    appId: 391347,
+    appId: config.appID,
     privateKey: authKey,
-    installationId: 41929889,
+    installationId: config.installationID,
   },
 });
 
 async function getCommitsToPoint(sha) {
   let commits = [];
   let iterator;
-
-  console.log("Fetching commits...");
   
   iterator = githubClient.paginate.iterator(githubClient.rest.repos.listCommits,{
     owner: skyratrepoOwner,
@@ -54,14 +52,13 @@ async function getCommitsToPoint(sha) {
       let info = rawCommit.commit.message;
       if(info.includes("Automatic changelog")) continue;
       let commit = new Commit(commitsha, info);
-      if (!commit.PR) {console.warn("Commit: ", commit.info, "\ndoesn't have attached PR to mirror."); continue;}
+      if (!commit.PR) {screamOutLoud("Commit: " + commit.info + "\ndoesn't have attached PR to mirror."); continue;}
       await commit.PR.resolvePR();
       commits.unshift(commit);
     };
   };
   if (commits.length == 0) {return {commits: commits, lastSHA: sha}};
   let lastSHA = commits[commits.length - 1].SHA;
-  console.log(commits.length, lastSHA);
   return {commits: commits, lastSHA: lastSHA}
 };
 
@@ -75,22 +72,25 @@ async function getPRdata(id, repo) {
 }
 
 function mirrorPR(PR){
+  let labels = [];
+  let prCreateResponse;
+  
+  if(PR.configUpdate) labels.push("Configs");
+
   //updates local repo from target remote and cleans it
   execSync("git checkout master && git fetch mirror master && git reset --hard origin/master", { cwd: repoPath });
-  let conflicted = false;
   try{
     execSync(`git checkout -b upstream-mirror-${PR.id} && git cherry-pick ${PR.mergeCommit.SHA}`, { cwd: repoPath });
   }
   catch{
     execSync("git add -A . && git -c core.editor=true cherry-pick --continue", { cwd: repoPath }); //theres conflicts, proceed regardless. No way to see where's exactly
     console.info(`Conflict while merging with ${PR.id}`);
-    conflicted = true;
+    labels.push("Mirroring conflict");
   }
 
   execSync(`git push origin upstream-mirror-${PR.id}`, { cwd: repoPath });
   execSync(`git checkout master && git branch -D upstream-mirror-${PR.id}`, { cwd: repoPath }); //returning to master and cleaning after ourselves
 
-  let prCreateResponse;
   try{
     githubClient.rest.pulls.create({
       owner: "Iajret",
@@ -101,21 +101,25 @@ function mirrorPR(PR){
       body: PR.info,
     }).then((result) => {
       prCreateResponse = result.data
-      if(conflicted){
+      if(labels.length > 0){
         let mirrorID = prCreateResponse?.number;
         try{
           githubClient.rest.issues.addLabels({
             owner: "Iajret",
             repo: "FluffySTG",
             issue_number: mirrorID,
-            labels: [
-              "Mirroring conflict"
-            ]
+            labels: labels,
           })
-        } catch(error){console.log(`Error while labeling PR #${PR.id}\n`, error.message)}
+        } catch(error){
+          screamOutLoud(`Error while labeling PR #${PR.id}\n` + error.message);
+          console.log(`Error while labeling PR #${PR.id}\n`, error.message)
+        }
       }
     });
-  } catch(error) {console.log(`Error while mirroring PR #${PR.id}\n`, error.message)}
+  } catch(error) {
+    screamOutLoud(`Error while mirroring PR #${PR.id}\n` + error.message);
+    console.log(`Error while mirroring PR #${PR.id}\n`, error.message)
+  };
 };
 
 //executes once just to make sure our local repo is properly set
@@ -204,7 +208,7 @@ class PullRequest{
       clBody[1] = " " + this.creator + clBody[1];
       this.info = clBody.join(":cl:");
     };
-
+    this.configUpdate = this.info.includes("config: ");
     this.info = this.info.replace(/https:\/\/[\S]+/, "(original url)") //delete this you dumbass
 
     this.title = this.urlTG ? this.title.replace(/(\[[A-Za-z\s]*\])/, "[TG Mirror]") : "[Skyrat Mirror] " + this.title;
