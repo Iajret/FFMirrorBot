@@ -78,7 +78,7 @@ function mirrorPR(PR){
   if(PR.configUpdate) labels.push("Configs");
 
   //updates local repo from target remote and cleans it
-  execSync("git checkout master && git fetch mirror master && git reset --hard origin/master", { cwd: repoPath });
+  execSync("git checkout master && git fetch --depth 1000 mirror master && git reset --hard origin/master", { cwd: repoPath });
   try{
     execSync(`git checkout -b upstream-mirror-${PR.id} && git cherry-pick ${PR.mergeCommit.SHA}`, { cwd: repoPath });
   }
