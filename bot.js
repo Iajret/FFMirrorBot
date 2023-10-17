@@ -8,7 +8,7 @@ const config = require("./config.json");
 
 const pollInterval = config.pollInterval * 1000;
 
-const ourrepo = "Iajret/FluffySTG".split("/");
+const ourrepo = "Fluffy-Frontier/FluffySTG".split("/");
 const ourrepoOwner = ourrepo[0];
 const ourrepoName = ourrepo[1];
 
