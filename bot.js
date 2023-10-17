@@ -30,12 +30,14 @@ const authKey = fs.readFileSync(
 const repoPath = config.repoPath;
 
 const githubClient = new Octokit({
-  authStrategy: createAppAuth,
-  auth: {
+  //authStrategy: createAppAuth,
+  auth: config.key,
+  userAgent: "FFMirrorBot",
+  /* auth: {
     appId: config.appID,
     privateKey: authKey,
     installationId: config.installationID,
-  },
+  }, */
 });
 
 async function getCommitsToPoint(sha) {
