@@ -91,7 +91,6 @@ function mirrorPR(PR){
   execSync(`git push origin upstream-mirror-${PR.id}`, { cwd: repoPath });
   execSync(`git checkout master && git branch -D upstream-mirror-${PR.id}`, { cwd: repoPath }); //returning to master and cleaning after ourselves
 
-  try{
     githubClient.rest.pulls.create({
       owner: "Iajret",
       repo: "FluffySTG",
@@ -103,23 +102,20 @@ function mirrorPR(PR){
       prCreateResponse = result.data
       if(labels.length > 0){
         let mirrorID = prCreateResponse?.number;
-        try{
           githubClient.rest.issues.addLabels({
             owner: "Iajret",
             repo: "FluffySTG",
             issue_number: mirrorID,
             labels: labels,
-          })
-        } catch(error){
-          screamOutLoud(`Error while labeling PR #${PR.id}\n` + error.message);
-          console.log(`Error while labeling PR #${PR.id}\n`, error.message)
-        }
-      }
-    });
-  } catch(error) {
-    screamOutLoud(`Error while mirroring PR #${PR.id}\n` + error.message);
-    console.log(`Error while mirroring PR #${PR.id}\n`, error.message)
-  };
+          }).catch((error) => {
+            screamOutLoud(`Error while labeling PR #${PR.id}\n` + error.message);
+            console.log(`Error while labeling PR #${PR.id}\n`, error.message);
+          });
+        };
+      }).catch((error) => {
+        screamOutLoud(`Error while mirroring PR #${PR.id}\n` + error.message);
+        console.log(`Error while mirroring PR #${PR.id}\n`, error.message);
+      })
 };
 
 //executes once just to make sure our local repo is properly set
@@ -212,6 +208,8 @@ class PullRequest{
     this.info = this.info.replace(/https:\/\/[\S]+/, "(original url)") //delete this you dumbass
 
     this.title = this.urlTG ? this.title.replace(/(\[[A-Za-z\s]*\])/, "[TG Mirror]") : "[Skyrat Mirror] " + this.title;
+    this.title.replace("[MDB IGNORE]", "");
+    this.title.replace("[NO GBP]", "");
     this.info = (this.urlTG ? "Mirrored on Skyrat: ${this.url}\n" : "## **Original PR: ${this.url}**\n") + this.info;
     //console.log("Title: ", this.title, "\nBody: ", this.info);
   }
