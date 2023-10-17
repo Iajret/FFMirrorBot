@@ -137,7 +137,13 @@ gitPreCheck();
 
 (function pollLoop() {
   setTimeout(() => {
-    let lastCommit = fs.readFileSync("./lastSha.txt", "utf8");
+    let lastCommit
+    try{
+      lastCommit = fs.readFileSync("./lastSha.txt", "utf8");
+    } catch {
+      fs.writeFileSync("./lastSha.txt", "add last commit here");
+      throw Error("lastSHA created. Add last commit hash to it and restart.")
+    }
 
     getCommitsToPoint(lastCommit)
     .catch((error) => console.log(`${error?.message}`))
@@ -169,6 +175,11 @@ class Commit{
     }
   }
 }
+
+process.on("uncaughtException", (err, origin) => {
+  screamOutLoud(`${err}\n\n${origin}`);
+  process.exit(1);
+})
 
 class PullRequest{
   constructor(commit){
