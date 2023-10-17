@@ -1,9 +1,10 @@
 {
     "keyPath": "path",
     "appID": "id (number)",
-    "installationID": "install id (check app url for it)",
+    "installationID": "install id (check app url for it)(number)",
 
-    "pollInterval": "polling interval in seconds",
+    "pollInterval": "polling interval in seconds (number)",
     "repoPath": "YOUR repo path (git clone)",
-    "webhookURL": "discord webhook url for **advanced** error logging"
+    "webhookURL": "discord webhook url for **advanced** error logging",
+    "pingID": "user ID for webhook pings (number)"
 }
