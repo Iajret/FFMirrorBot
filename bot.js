@@ -8,6 +8,10 @@ const config = require("./config.json");
 
 const pollInterval = config.pollInterval * 1000;
 
+const ourrepo = "Iajret/FluffySTG".split("/");
+const ourrepoOwner = ourrepo[0];
+const ourrepoName = ourrepo[1];
+
 const upstreamPath = "https://github.com/Skyrat-SS13/Skyrat-tg.git";
 const skyratrepo = "Skyrat-SS13/Skyrat-tg".split("/");
 const skyratrepoOwner = skyratrepo[0];
@@ -92,8 +96,8 @@ function mirrorPR(PR){
   execSync(`git checkout master && git branch -D upstream-mirror-${PR.id}`, { cwd: repoPath }); //returning to master and cleaning after ourselves
 
     githubClient.rest.pulls.create({
-      owner: "Iajret",
-      repo: "FluffySTG",
+      owner: ourrepoOwner,
+      repo: ourrepoName,
       head: `upstream-mirror-${PR.id}`,
       base: "master",
       title: PR.title,
@@ -103,8 +107,8 @@ function mirrorPR(PR){
       if(labels.length > 0){
         let mirrorID = prCreateResponse?.number;
           githubClient.rest.issues.addLabels({
-            owner: "Iajret",
-            repo: "FluffySTG",
+            owner: ourrepoOwner,
+            repo: ourrepoName,
             issue_number: mirrorID,
             labels: labels,
           }).catch((error) => {
