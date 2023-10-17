@@ -134,6 +134,7 @@ function screamOutLoud(message){
 };
 
 gitPreCheck();
+screamOutLoud("Я живое");
 
 (function pollLoop() {
   setTimeout(() => {
@@ -162,6 +163,11 @@ gitPreCheck();
   }, pollInterval);
 })();
 
+process.on("uncaughtException", (err, origin) => {
+  screamOutLoud(`${err}\n\n${origin}`);
+  setTimeout(() =>   process.exit(1), 100)
+})
+
 class Commit{
   constructor(SHA, info){
     this.SHA = SHA;
@@ -175,11 +181,6 @@ class Commit{
     }
   }
 }
-
-process.on("uncaughtException", (err, origin) => {
-  screamOutLoud(`${err}\n\n${origin}`);
-  process.exit(1);
-})
 
 class PullRequest{
   constructor(commit){
