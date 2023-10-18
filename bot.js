@@ -226,7 +226,7 @@ class PullRequest{
     //this.info = this.info.replace(/https:\/\/[\S]+/, "(original url)") //delete this you dumbass
 
     this.title = this.urlTG ? this.title.replace(/(\[[A-Za-z\s]*\])/, "[TG Mirror]") : "[Skyrat Mirror] " + this.title;
-    this.title.replace(/(\[(MDB IGNORE|NO GBP)\])/g, "");
+    this.title = this.title.replace(/(\[(MDB IGNORE|NO GBP)\])/g, "");
     this.info = (this.urlTG ? `Mirrored on Skyrat: ${this.url}\n` : `## **Original PR: ${this.url}**\n`) + this.info;
     //console.log("Title: ", this.title, "\nBody: ", this.info);
   }
