@@ -82,6 +82,7 @@ function mirrorPR(PR){
   let prCreateResponse;
   
   if(PR.configUpdate) labels.push("Configs");
+  PR.urlTG ? labels.push("TG Mirror") : labels.push("Skyrat Mirror")
 
   //updates local repo from target remote and cleans it
   execSync("git checkout master && git pull --depth 1000 origin master && git fetch --depth 1000 mirror master && git reset --hard origin/master", { cwd: repoPath });
@@ -97,31 +98,31 @@ function mirrorPR(PR){
   execSync(`git push origin upstream-mirror-${PR.id}`, { cwd: repoPath });
   execSync(`git checkout master && git branch -D upstream-mirror-${PR.id}`, { cwd: repoPath }); //returning to master and cleaning after ourselves
 
-    githubClient.rest.pulls.create({
-      owner: ourrepoOwner,
-      repo: ourrepoName,
-      head: `upstream-mirror-${PR.id}`,
-      base: "master",
-      title: PR.title,
-      body: PR.info,
-    }).then((result) => {
-      prCreateResponse = result.data
-      if(labels.length > 0){
-        let mirrorID = prCreateResponse?.number;
-          githubClient.rest.issues.addLabels({
-            owner: ourrepoOwner,
-            repo: ourrepoName,
-            issue_number: mirrorID,
-            labels: labels,
-          }).catch((error) => {
-            screamOutLoud(`Error while labeling PR #${PR.id}\n` + error.message);
-            console.log(`Error while labeling PR #${PR.id}\n`, error.message);
-          });
-        };
-      }).catch((error) => {
-        screamOutLoud(`Error while mirroring PR #${PR.id}\n` + error.message);
-        console.log(`Error while mirroring PR #${PR.id}\n`, error.message);
-      })
+  githubClient.rest.pulls.create({
+    owner: ourrepoOwner,
+    repo: ourrepoName,
+    head: `upstream-mirror-${PR.id}`,
+    base: "master",
+    title: PR.title,
+    body: PR.info,
+  }).then((result) => {
+    prCreateResponse = result.data
+    if(labels.length > 0){
+      let mirrorID = prCreateResponse?.number;
+        githubClient.rest.issues.addLabels({
+          owner: ourrepoOwner,
+          repo: ourrepoName,
+          issue_number: mirrorID,
+          labels: labels,
+        }).catch((error) => {
+          screamOutLoud(`Error while labeling PR #${PR.id}\n` + error.message);
+          console.log(`Error while labeling PR #${PR.id}\n`, error.message);
+        });
+      };
+    }).catch((error) => {
+      screamOutLoud(`Error while mirroring PR #${PR.id}\n` + error.message);
+      console.log(`Error while mirroring PR #${PR.id}\n`, error.message);
+    })
 };
 
 //executes once just to make sure our local repo is properly set
@@ -182,7 +183,6 @@ class Commit{
     if(PRNumber) {
       this.PRid = PRNumber[PRNumber.length - 1].replace(/[\(|#|\)]/g, "");
       let PR = new PullRequest(this);
-      //PR.resolvePR();
       this.PR = PR;
     }
   }
@@ -212,8 +212,8 @@ class PullRequest{
   };
 
   compileData(){
-    if(this.title.toLowerCase().includes("mirror") && !this.urlTG) console.log('PR ', this.id, 'had "mirror" in its name but missed original url.' );
-    //console.log(this.title);
+    if(this.title.toLowerCase().includes("mirror") && !this.urlTG) console.warn('PR ', this.id, 'had "mirror" in its name but missed original url.' );
+
     //try to get author name from :cl: thingy
     let clBody = this.info.split(":cl:");
     if(clBody[1]){
@@ -223,11 +223,8 @@ class PullRequest{
       this.info = clBody.join(":cl:");
     };
     this.configUpdate = this.info.includes("config: ");
-    //this.info = this.info.replace(/https:\/\/[\S]+/, "(original url)") //delete this you dumbass
 
-    this.title = this.urlTG ? this.title.replace(/(\[[A-Za-z\s]*\])/, "[TG Mirror]") : "[Skyrat Mirror] " + this.title;
-    this.title = this.title.replace(/(\[(MDB IGNORE|NO GBP)\])/g, "");
+    this.title = this.title.replace(/(\[(MDB IGNORE|NO GBP|MIRROR)\])/g, "");
     this.info = (this.urlTG ? `Mirrored on Skyrat: ${this.url}\n` : `## **Original PR: ${this.url}**\n`) + this.info;
-    //console.log("Title: ", this.title, "\nBody: ", this.info);
   }
 }
