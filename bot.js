@@ -2,42 +2,28 @@ const fs = require("fs");
 const axios = require("axios");
 const { execSync } = require("child_process");
 const { Octokit } = require("@octokit/rest");
-const { createAppAuth } = require("@octokit/auth-app");
 
 const config = require("./config.json");
 
 const pollInterval = config.pollInterval * 1000;
 
-const ourrepo = "Fluffy-Frontier/FluffySTG".split("/");
-const ourrepoOwner = ourrepo[0];
-const ourrepoName = ourrepo[1];
+const ourRepo = "Fluffy-Frontier/FluffySTG".split("/");
+const ourRepoOwner = ourRepo[0];
+const ourRepoName = ourRepo[1];
 
 const upstreamPath = "https://github.com/Skyrat-SS13/Skyrat-tg.git";
-const skyratrepo = "Skyrat-SS13/Skyrat-tg".split("/");
-const skyratrepoOwner = skyratrepo[0];
-const skyratrepoName = skyratrepo[1];
+const skyratRepo = "Skyrat-SS13/Skyrat-tg".split("/");
+const skyratRepoOwner = skyratRepo[0];
+const skyratRepoName = skyratRepo[1];
 
 //only used to get original PR author for changelogs
-const TGrepo = "tgstation/tgstation".split("/");
-const TGrepoOwner = TGrepo[0];
-const TGrepoName = TGrepo[1];
-
-const authKey = fs.readFileSync(
-  config.keyPath,
-  "utf8",
-);
+const TGRepo = "tgstation/tgstation".split("/");
 
 const repoPath = config.repoPath;
 
 const githubClient = new Octokit({
-  //authStrategy: createAppAuth,
   auth: config.key,
   userAgent: "FFMirrorBot",
-  /* auth: {
-    appId: config.appID,
-    privateKey: authKey,
-    installationId: config.installationID,
-  }, */
 });
 
 async function getCommitsToPoint(sha) {
@@ -45,8 +31,8 @@ async function getCommitsToPoint(sha) {
   let iterator;
   
   iterator = githubClient.paginate.iterator(githubClient.rest.repos.listCommits,{
-    owner: skyratrepoOwner,
-    repo: skyratrepoName,
+    owner: skyratRepoOwner,
+    repo: skyratRepoName,
     per_page: 100,
   });
 
@@ -61,19 +47,19 @@ async function getCommitsToPoint(sha) {
       if (!commit.PR) {screamOutLoud("Commit: " + commit.info + "\ndoesn't have attached PR to mirror."); continue;}
       await commit.PR.resolvePR();
       commits.unshift(commit);
-    };
-  };
-  if (commits.length == 0) {return {commits: commits, lastSHA: sha}};
-  let lastSHA = commits[commits.length - 1].SHA;
+    }
+  }
+  if (commits.length === 0) {return {commits: commits, lastSHA: sha}}
+  let lastSHA = commits[commits.length - 1].SHA
   return {commits: commits, lastSHA: lastSHA}
-};
+}
 
 async function getPRdata(id, repo) {
   let PR = await githubClient.rest.pulls.get({
     owner: repo[0],
     repo: repo[1],
     pull_number: id,
-  });
+  })
   return PR.data
 }
 
@@ -99,8 +85,8 @@ function mirrorPR(PR){
   execSync(`git checkout master && git branch -D upstream-mirror-${PR.id}`, { cwd: repoPath }); //returning to master and cleaning after ourselves
 
   githubClient.rest.pulls.create({
-    owner: ourrepoOwner,
-    repo: ourrepoName,
+    owner: ourRepoOwner,
+    repo: ourRepoName,
     head: `upstream-mirror-${PR.id}`,
     base: "master",
     title: PR.title,
@@ -110,20 +96,20 @@ function mirrorPR(PR){
     if(labels.length > 0){
       let mirrorID = prCreateResponse?.number;
         githubClient.rest.issues.addLabels({
-          owner: ourrepoOwner,
-          repo: ourrepoName,
+          owner: ourRepoOwner,
+          repo: ourRepoName,
           issue_number: mirrorID,
           labels: labels,
         }).catch((error) => {
           screamOutLoud(`Error while labeling PR #${PR.id}\n` + error.message);
           console.log(`Error while labeling PR #${PR.id}\n`, error.message);
-        });
-      };
+        })
+      }
     }).catch((error) => {
       screamOutLoud(`Error while mirroring PR #${PR.id}\n` + error.message);
       console.log(`Error while mirroring PR #${PR.id}\n`, error.message);
     })
-};
+}
 
 //executes once just to make sure our local repo is properly set
 function gitPreCheck(){
@@ -132,13 +118,13 @@ function gitPreCheck(){
   catch{
     console.info("Remote already set or URL is invalid")
   }
-};
+}
 
 function screamOutLoud(message){
   axios.post(config.webhookURL, {
     content: `<@${config.pingID}>\n ${message}`,
   })
-};
+}
 
 gitPreCheck();
 screamOutLoud("Я живое");
@@ -162,7 +148,7 @@ screamOutLoud("Я живое");
           console.log(`Mirroring #${PR.id}: "${PR.title}" with its commit sha ${commit.SHA}`);
           mirrorPR(PR);
           fs.writeFileSync("./lastSha.txt", commit.SHA);
-        };
+        }
         //if (lastSHA != result.lastSHA) console.log("Failed to mirror all PRs");
       }
     });
@@ -181,9 +167,8 @@ class Commit{
     this.info = info;
     let PRNumber = info.match(/\(#[0-9]+\)/);
     if(PRNumber) {
-      this.PRid = PRNumber[PRNumber.length - 1].replace(/[\(|#|\)]/g, "");
-      let PR = new PullRequest(this);
-      this.PR = PR;
+      this.PRid = PRNumber[PRNumber.length - 1].replace(/[(|#)]/g, "");
+      this.PR = new PullRequest(this);
     }
   }
 }
@@ -195,17 +180,16 @@ class PullRequest{
   };
 
   async resolvePR(){
-    let data = await getPRdata(this.id, skyratrepo);
+    let data = await getPRdata(this.id, skyratRepo);
     this.title = data.title;
     this.url = data.html_url;
-    this.patch = data.patch_url;
     this.info = data.body; 
     this.creator = data.user.login;
     if (this.title.startsWith("[MIRROR]") || this.title.startsWith("[MISSED MIRROR]")){ //true => TG mirror, so we need to get some additional info
       let urlLine = this.info.split("\n")[0];
       this.urlTG = urlLine.slice(13);
       this.idTG = this.urlTG.match(/[0-9]+/);
-      data = await getPRdata(this.idTG, TGrepo);
+      data = await getPRdata(this.idTG, TGRepo);
       this.creator = data.user.login;
     }
     this.compileData();
@@ -221,10 +205,10 @@ class PullRequest{
       if (authors.length > 1) this.creator = ""; // then we dont need to add anything, it's already here
       clBody[1] = " " + this.creator + clBody[1];
       this.info = clBody.join(":cl:");
-    };
+    }
     this.configUpdate = this.info.includes("config: ");
-
-    this.title = this.title.replace(/(\[(MDB IGNORE|NO GBP|MIRROR)\])/g, "");
+    if(this.title.search(/\[MIRROR]/) < 0) this.title = `[MIRROR] ${this.title}`
+    this.title = this.title.replace(/(\[(MDB IGNORE|NO GBP)])/g, "");
     this.info = (this.urlTG ? `Mirrored on Skyrat: ${this.url}\n` : `## **Original PR: ${this.url}**\n`) + this.info;
   }
 }
