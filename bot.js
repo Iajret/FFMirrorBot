@@ -1,7 +1,11 @@
 const fs = require("fs");
-const axios = require("axios");
 const { execSync } = require("child_process");
+
+const axios = require("axios");
+
 const { Octokit } = require("@octokit/rest");
+const { retry } = require("@octokit/plugin-retry");
+const { throttling } = require("@octokit/plugin-throttling");
 
 const config = require("./config.json");
 
@@ -21,9 +25,28 @@ const TGRepo = "tgstation/tgstation".split("/");
 
 const repoPath = config.repoPath;
 
-const githubClient = new Octokit({
+const MyOctokit = Octokit.plugin(retry, throttling);
+const githubClient = new MyOctokit({
   auth: config.key,
   userAgent: "FFMirrorBot",
+  throttle: {
+    onRateLimit: (retryAfter, options) => {
+      if (options.request.retryCount <= 10) {
+        console.info(`Primary quota reached. Retrying after ${retryAfter} seconds!`);
+        return true;
+      }
+      console.warn(`Request ${options.method} ${options.url} failed after 5 retries.`);
+      screamOutLoud(`Request ${options.method} ${options.url} failed after 5 retries.`);
+    },
+    onSecondaryRateLimit: (retryAfter, options) => {
+      if (options.request.retryCount <= 10) {
+        console.info(`Secondary quota reached. Retrying after ${retryAfter} seconds!`);
+        return true;
+      }
+      console.warn(`Request ${options.method} ${options.url} failed after 5 retries.`);
+      screamOutLoud(`Request ${options.method} ${options.url} failed after 5 retries.`);
+    },
+  },
 });
 
 async function getCommitsToPoint(sha) {
