@@ -73,7 +73,7 @@ function mirrorPR(PR){
   //updates local repo from target remote and cleans it
   execSync("git checkout master && git pull --depth 1000 origin master && git fetch --depth 1000 mirror master && git reset --hard origin/master", { cwd: repoPath });
   try{
-    execSync(`git checkout -b upstream-mirror-${PR.id} && git cherry-pick ${PR.mergeCommit.SHA}`, { cwd: repoPath });
+    execSync(`git checkout -b upstream-mirror-${PR.id} && git cherry-pick ${PR.mergeCommit.SHA} --allow-empty`, { cwd: repoPath });
   }
   catch{
     execSync("git add -A . && git -c core.editor=true cherry-pick --continue", { cwd: repoPath }); //theres conflicts, proceed regardless. No way to see where's exactly
