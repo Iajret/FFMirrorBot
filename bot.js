@@ -68,8 +68,13 @@ async function getCommitsToPoint(sha) {
       if(info.includes("Automatic changelog")) continue;
       let commit = new Commit(commitsha, info);
       if (!commit.PR) {screamOutLoud("Commit: " + commit.info + "\ndoesn't have attached PR to mirror."); continue;}
-      await commit.PR.resolvePR();
-      commits.unshift(commit);
+      await commit.PR.resolvePR()
+        .catch((error) => {
+          screamOutLoud("Commit: " + commit.info + "\ndoesn't have attached PR to mirror.")
+        })
+        .then(()=>{
+          commits.unshift(commit);
+        })
     }
   }
   if (commits.length === 0) {return {commits: commits, lastSHA: sha}}
@@ -188,9 +193,10 @@ class Commit{
   constructor(SHA, info){
     this.SHA = SHA;
     this.info = info;
-    let PRNumber = info.match(/\(#[0-9]+\)/);
+    let PRNumber = info.match(/\(#[0-9]+\)/g);
+    console.log(PRNumber);
     if(PRNumber) {
-      this.PRid = PRNumber[PRNumber.length - 1].replace(/[(|#)]/g, "");
+      this.PRid = PRNumber.length > 1 ? PRNumber[1].replace(/[(|#)]/g, "") : PRNumber[0].replace(/[(|#)]/g, "");
       this.PR = new PullRequest(this);
     }
   }
