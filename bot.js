@@ -194,7 +194,6 @@ class Commit{
     this.SHA = SHA;
     this.info = info;
     let PRNumber = info.match(/\(#[0-9]+\)/g);
-    console.log(PRNumber);
     if(PRNumber) {
       this.PRid = this.info.startsWith("[MISSED MIRROR]") ? PRNumber[1].replace(/[(|#)]/g, "") : PRNumber[0].replace(/[(|#)]/g, "");
       this.PR = new PullRequest(this);
