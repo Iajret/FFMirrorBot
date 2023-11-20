@@ -173,7 +173,7 @@ screamOutLoud("Я живое");
       if(result.commits){
         for(let commit of result.commits){
           let PR = commit.PR;
-          console.log(`Mirroring #${PR.id}: "${PR.title}" with its commit sha ${commit.SHA}`);
+          console.log(`Mirroring ${PR.id}:"${PR.title}" with its commit sha ${commit.SHA}`);
           mirrorPR(PR);
           fs.writeFileSync("./lastSha.txt", commit.SHA);
         }
@@ -193,9 +193,8 @@ class Commit{
   constructor(SHA, info){
     this.SHA = SHA;
     this.info = info;
-    let PRNumber = info.match(/\(#[0-9]+\)/g);
-    if(PRNumber) {
-      this.PRid = this.info.startsWith("[MISSED MIRROR]") ? PRNumber[1].replace(/[(|#)]/g, "") : PRNumber[0].replace(/[(|#)]/g, "");
+    this.PRid = info.match(/\(#[0-9]+\)/g);
+    if(this.PRid) {
       this.PR = new PullRequest(this);
     }
   }
@@ -208,7 +207,14 @@ class PullRequest{
   };
 
   async resolvePR(){
-    let data = await getPRdata(this.id, skyratRepo);
+    let data
+    let i = 0
+    do {
+      let id = this.id[i].replace(/[(|#)]/g, "");
+      data = await getPRdata(id, skyratRepo).catch(() => { });//catching 404 error since thats what the purpose of entire do while loop here
+      i++
+    } while (!data)
+    this.id = this.id[i-1];
     this.title = data.title;
     this.url = data.html_url;
     this.info = data.body; 
@@ -217,14 +223,13 @@ class PullRequest{
       let urlLine = this.info.split("\n")[0];
       this.urlTG = urlLine.slice(13);
       this.idTG = this.urlTG.match(/[0-9]+/);
-      data = await getPRdata(this.idTG, TGRepo);
-      this.creator = data.user.login;
+      await getPRdata(this.idTG, TGRepo).then((data) => this.creator = data.user.login);
     }
     this.compileData();
   };
 
   compileData(){
-    if(this.title.toLowerCase().includes("mirror") && !this.urlTG) console.warn('PR ', this.id, 'had "mirror" in its name but missed original url.' );
+    if(this.title.toLowerCase().includes("mirror") && !this.urlTG) console.warn('PR', this.id, 'had "mirror" in its name but missed original url.' );
 
     //try to get author name from :cl: thingy
     let clBody = this.info.split(":cl:");
@@ -236,7 +241,7 @@ class PullRequest{
     }
     this.configUpdate = this.info.includes("config: ");
     if(this.title.search(/\[MIRROR]/) < 0) this.title = `[MIRROR] ${this.title}`
-    this.title = this.title.replace(/(\[(MDB IGNORE|NO GBP)])/g, "");
+    this.title = this.title.replace(/(\[(MDB IGNORE|NO GBP|MISSED MIRROR)])/g, "");
     this.info = (this.urlTG ? `Mirrored on Skyrat: ${this.url}\n` : `## **Original PR: ${this.url}**\n`) + this.info;
   }
 }
