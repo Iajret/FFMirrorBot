@@ -173,7 +173,7 @@ screamOutLoud("Я живое");
       if(result.commits){
         for(let commit of result.commits){
           let PR = commit.PR;
-          console.log(`Mirroring ${PR.id}:"${PR.title}" with its commit sha ${commit.SHA}`);
+          console.log(`Mirroring #${PR.id}:"${PR.title}" with its commit sha ${commit.SHA}`);
           mirrorPR(PR);
           fs.writeFileSync("./lastSha.txt", commit.SHA);
         }
@@ -214,7 +214,7 @@ class PullRequest{
       data = await getPRdata(id, skyratRepo).catch(() => { });//catching 404 error since thats what the purpose of entire do while loop here
       i++
     } while (!data)
-    this.id = this.id[i-1];
+    this.id = this.id[i-1].replace(/[(|#)]/g, "");
     this.title = data.title;
     this.url = data.html_url;
     this.info = data.body; 
