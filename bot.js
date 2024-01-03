@@ -15,10 +15,10 @@ const ourRepo = "Fluffy-Frontier/FluffySTG".split("/");
 const ourRepoOwner = ourRepo[0];
 const ourRepoName = ourRepo[1];
 
-const upstreamPath = "https://github.com/Skyrat-SS13/Skyrat-tg.git";
-const skyratRepo = "Skyrat-SS13/Skyrat-tg".split("/");
-const skyratRepoOwner = skyratRepo[0];
-const skyratRepoName = skyratRepo[1];
+const upstreamPath = "https://github.com/NovaSector/NovaSector.git";
+const upstreamRepo = "NovaSector/NovaSector".split("/");
+const upstreamRepoOwner = upstreamRepo[0];
+const upstreamRepoName = upstreamRepo[1];
 
 //only used to get original PR author for changelogs
 const TGRepo = "tgstation/tgstation".split("/");
@@ -54,8 +54,8 @@ async function getCommitsToPoint(sha) {
   let iterator;
   
   iterator = githubClient.paginate.iterator(githubClient.rest.repos.listCommits,{
-    owner: skyratRepoOwner,
-    repo: skyratRepoName,
+    owner: upstreamRepoOwner,
+    repo: upstreamRepoName,
     per_page: 100,
   });
 
@@ -96,7 +96,7 @@ function mirrorPR(PR){
   let prCreateResponse;
   
   if(PR.configUpdate) labels.push("Configs");
-  PR.urlTG ? labels.push("TG Mirror") : labels.push("Skyrat Mirror")
+  PR.urlTG ? labels.push("TG Mirror") : labels.push("Nova Mirror")
 
   //updates local repo from target remote and cleans it
   execSync("git checkout master && git pull --depth 1000 origin master && git fetch --depth 1000 mirror master && git reset --hard origin/master", { cwd: repoPath });
@@ -211,7 +211,7 @@ class PullRequest{
     let i = 0
     do {
       let id = this.id[i].replace(/[(|#)]/g, "");
-      data = await getPRdata(id, skyratRepo).catch(() => { });//catching 404 error since thats what the purpose of entire do while loop here
+      data = await getPRdata(id, upstreamRepo).catch(() => { });//catching 404 error since thats what the purpose of entire do while loop here
       i++
     } while (!data)
     this.id = this.id[i-1].replace(/[(|#)]/g, "");
