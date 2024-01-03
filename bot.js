@@ -242,6 +242,6 @@ class PullRequest{
     this.configUpdate = this.info.includes("config: ");
     if(this.title.search(/\[MIRROR]/) < 0) this.title = `[MIRROR] ${this.title}`
     this.title = this.title.replace(/(\[(MDB IGNORE|NO GBP|MISSED MIRROR)])/g, "");
-    this.info = (this.urlTG ? `Mirrored on Skyrat: ${this.url}\n` : `## **Original PR: ${this.url}**\n`) + this.info;
+    this.info = (this.urlTG ? `Mirrored on Nova: ${this.url}\n` : `## **Original PR: ${this.url}**\n`) + this.info;
   }
 }
