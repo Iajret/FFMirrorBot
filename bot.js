@@ -106,17 +106,17 @@ function mirrorPR(PR){
     try{
       execSync("git add -A . && git -c core.editor=true cherry-pick --continue", { cwd: repoPath }); //theres conflicts, proceed regardless. No way to see where's exactly
     } catch {
-      screamOutLoud(`${PR.title} failed to cherry-pick!`);
-      execSync(`git checkout master && git branch -D upstream-mirror-${PR.id}`, { cwd: repoPath }); // probably a merge commit instead of squash
+      screamOutLoud(`${PR.title} failed to cherry-pick!`); // probably a merge commit instead of squash
+      execSync(`git checkout master && git branch -D upstream-mirror-${PR.id}`, { cwd: repoPath });
       return
     }
     console.info(`Conflict while merging with ${PR.id}`);
     labels.push("Mirroring conflict");
   }
-
-  execSync(`git commit --allow-empty -m "${PR.title}"`, { cwd: repoPath }); // empty commit to remove redundant PR id when merging on github
+  let title = PR.title.replace(/"/g, `"'"'"`) // replace double quotes to prevent collision between command and commit name
+  execSync(`git commit --allow-empty -m "${title}"`, { cwd: repoPath }); // empty commit to remove redundant PR id when merging on github
   execSync(`git push origin upstream-mirror-${PR.id}`, { cwd: repoPath });
-  execSync(`git checkout master && git branch -D upstream-mirror-${PR.id}`, { cwd: repoPath }); //returning to master and cleaning after ourselves
+  execSync(`git checkout master && git branch -D upstream-mirror-${PR.id}`, { cwd: repoPath });
 
   githubClient.rest.pulls.create({
     owner: ourRepoOwner,
